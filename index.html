@@ -658,7 +658,7 @@ async function logout(){
 
 // Observador de autenticação Firebase
 function initAuthObserver(){
-  const {auth,onAuthStateChanged,ADMIN_EMAIL}=window._fb;
+  const {auth,onAuthStateChanged,ADMIN_EMAIL,db,collection,getDocs}=window._fb;
   onAuthStateChanged(auth,async(user)=>{
     if(!user){
       sessao={tipo:null,id:null,nome:null};
@@ -666,16 +666,38 @@ function initAuthObserver(){
       document.getElementById('login-screen').style.display='block';
       return;
     }
-    await loadAll();
     if(user.email===ADMIN_EMAIL){
+      await loadAll();
       sessao={tipo:'admin',id:'admin',nome:'Administrador'};
+      entrarApp();
     } else {
-      const a=artesaos.find(x=>x.email===user.email);
-      if(!a){await logout();return;}
-      if(a.status==='inativo'){toast('Sua conta está inativa. Contate o administrador.','err');await logout();return;}
-      sessao={tipo:'artesao',id:a.id,nome:a.nome};
+      // Busca o artesão diretamente no Firestore pelo email
+      try{
+        const snap=await getDocs(collection(db,'artesaos'));
+        const doc=snap.docs.find(d=>d.data().email===user.email);
+        if(!doc){
+          toast('Cadastro não encontrado. Aguarde aprovação.','warn');
+          const {signOut}=window._fb;
+          await signOut(auth);
+          return;
+        }
+        const a=doc.data();
+        if(a.status==='inativo'){
+          toast('Sua conta está inativa. Contate o administrador.','err');
+          const {signOut}=window._fb;
+          await signOut(auth);
+          return;
+        }
+        sessao={tipo:'artesao',id:a.id,nome:a.nome};
+        await loadAll();
+        entrarApp();
+      }catch(e){
+        console.error('Erro ao buscar artesão:',e);
+        toast('Erro ao carregar seus dados. Tente novamente.','err');
+        const {signOut}=window._fb;
+        await signOut(auth);
+      }
     }
-    entrarApp();
   });
 }
 function buildNav(){const nav=document.getElementById('main-nav');if(sessao.tipo==='admin')nav.innerHTML=`<button class="nav-btn" onclick="showTab('painel')" id="tab-painel">📊 Painel</button><button class="nav-btn" onclick="showTab('artesaos')" id="tab-artesaos">👩‍🎨 Artesãos</button><button class="nav-btn" onclick="showTab('feiras')" id="tab-feiras">📅 Feiras</button><button class="nav-btn" onclick="showTab('inscricoes')" id="tab-inscricoes">📋 Inscrições</button><button class="nav-btn" onclick="showTab('rodizio')" id="tab-rodizio">🔄 Rodízio</button><button class="nav-btn" onclick="showTab('parceiros')" id="tab-parceiros">🤝 Parceiros</button>`;else nav.innerHTML=`<button class="nav-btn active" onclick="showTab('portal')" id="tab-portal">🏪 Minhas inscrições</button>`;}
