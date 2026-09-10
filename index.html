@@ -676,7 +676,7 @@ function initAuthObserver(){
         const snap=await getDocs(collection(db,'artesaos'));
         const doc=snap.docs.find(d=>d.data().email===user.email);
         if(!doc){
-          toast('Cadastro não encontrado. Aguarde aprovação.','warn');
+          toast('Cadastro não encontrado. Aguarde aprovação do administrador.','warn');
           const {signOut}=window._fb;
           await signOut(auth);
           return;
@@ -693,7 +693,8 @@ function initAuthObserver(){
         entrarApp();
       }catch(e){
         console.error('Erro ao buscar artesão:',e);
-        toast('Erro ao carregar seus dados. Tente novamente.','err');
+        const msg=e?.code||e?.message||'desconhecido';
+        toast('Erro: '+msg,'err');
         const {signOut}=window._fb;
         await signOut(auth);
       }
