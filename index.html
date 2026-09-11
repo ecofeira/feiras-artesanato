@@ -671,7 +671,8 @@ function initAuthObserver(){
       sessao={tipo:'admin',id:'admin',nome:'Administrador'};
       entrarApp();
     } else {
-      // Busca o artesão diretamente no Firestore pelo email
+      // Aguarda o token estar pronto antes de consultar
+      try{ await user.getIdToken(true); }catch(e){}
       try{
         const snap=await getDocs(collection(db,'artesaos'));
         const doc=snap.docs.find(d=>d.data().email===user.email);
