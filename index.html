@@ -7,7 +7,7 @@
 <script type="module">
 // ── FIREBASE SDK ────────────────────────────────────────────────────────────
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getFirestore, doc, getDoc, setDoc, collection, getDocs, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getFirestore, doc, getDoc, setDoc, collection, getDocs, onSnapshot, query, where } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 const firebaseConfig = {
@@ -25,7 +25,7 @@ const auth = getAuth(app);
 const ADMIN_EMAIL = "ecofeiragdi@gmail.com";
 
 // Expor para o escopo global (usado pelas funções onclick do HTML)
-window._fb = { db, auth, doc, getDoc, setDoc, collection, getDocs,
+window._fb = { db, auth, doc, getDoc, setDoc, collection, getDocs, query, where,
                signInWithEmailAndPassword, createUserWithEmailAndPassword,
                signOut, onAuthStateChanged, sendPasswordResetEmail, ADMIN_EMAIL };
 </script>
@@ -498,6 +498,13 @@ async function fsGet(col){
   const snap=await getDocs(collection(db,col));
   return snap.docs.map(d=>d.data());
 }
+// Busca só os documentos de uma coleção onde `campo` == `valor` (usado pelo artesão para
+// ler apenas os próprios dados, sem precisar de permissão para ler a coleção inteira)
+async function fsGetWhere(col,campo,valor){
+  const {db,collection,getDocs,query,where}=window._fb;
+  const snap=await getDocs(query(collection(db,col),where(campo,'==',valor)));
+  return snap.docs.map(d=>d.data());
+}
 async function fsSave(col,val){
   const {db,collection,setDoc,doc}=window._fb;
   if(col==='dadosBanco'){await setDoc(doc(db,'config','banco'),val);return;}
@@ -513,11 +520,26 @@ async function fsDelete(col,id){
 window.fsDelete=fsDelete;
 
 async function loadAll(){
-  const [a,f,i,s,b,p,pp,n]=await Promise.all([
-    fsGet('artesaos'),fsGet('feiras'),fsGet('inscricoes'),fsGet('solicitacoes'),
-    fsGet('dadosBanco'),fsGet('parceiros'),fsGet('participacoesParceiros'),fsGet('notificacoes')
-  ]);
-  artesaos=a;feiras=f;inscricoes=i;solicitacoes=s;dadosBanco=b;parceiros=p;participacoesParceiros=pp;notificacoes=n;
+  if(sessao.tipo==='admin'){
+    const [a,f,i,s,b,p,pp,n]=await Promise.all([
+      fsGet('artesaos'),fsGet('feiras'),fsGet('inscricoes'),fsGet('solicitacoes'),
+      fsGet('dadosBanco'),fsGet('parceiros'),fsGet('participacoesParceiros'),fsGet('notificacoes')
+    ]);
+    artesaos=a;feiras=f;inscricoes=i;solicitacoes=s;dadosBanco=b;parceiros=p;participacoesParceiros=pp;notificacoes=n;
+  } else if(sessao.tipo==='artesao'){
+    // Artesão só carrega feiras (públicas) + dados PIX (públicos p/ logados) + os PRÓPRIOS
+    // registros de inscrições/notificações/solicitações — nunca os dados de outros artesãos.
+    const [f,b,i,n,s]=await Promise.all([
+      fsGet('feiras'),fsGet('dadosBanco'),
+      fsGetWhere('inscricoes','artesaoId',sessao.id),
+      fsGetWhere('notificacoes','artesaoId',sessao.id),
+      fsGetWhere('solicitacoes','artesaoId',sessao.id)
+    ]);
+    feiras=f;dadosBanco=b;inscricoes=i;notificacoes=n;solicitacoes=s;
+    // artesaos, parceiros e participacoesParceiros não são carregados: o portal do artesão
+    // usa apenas o próprio registro, já guardado em `artesaos` pelo login (ver initAuthObserver).
+    parceiros=[];participacoesParceiros=[];
+  }
 }
 async function save(col,val){await fsSave(col,val);}
 
@@ -571,9 +593,10 @@ async function enviarCadastro(){
   if(senha!==senha2){toast('As senhas não coincidem','err');return;}
   const {auth,createUserWithEmailAndPassword}=window._fb;
   try{
-    await createUserWithEmailAndPassword(auth,email,senha);
-    // Cria conta no Auth — agora salva a solicitação
-    solicitacoes.push({id:uid(),status:'pendente',
+    const cred=await createUserWithEmailAndPassword(auth,email,senha);
+    const authUid=cred.user.uid;
+    // Cria conta no Auth — agora salva a solicitação (guardando o UID p/ vincular o cadastro depois)
+    solicitacoes.push({id:uid(),status:'pendente',authUid,
       nome:document.getElementById('c-nome').value.trim(),
       marca:document.getElementById('c-marca').value.trim(),
       telefone:document.getElementById('c-telefone').value.trim(),
@@ -667,22 +690,23 @@ function initAuthObserver(){
       return;
     }
     if(user.email===ADMIN_EMAIL){
-      await loadAll();
       sessao={tipo:'admin',id:'admin',nome:'Administrador'};
+      await loadAll();
       entrarApp();
     } else {
       // Aguarda o token estar pronto antes de consultar
       try{ await user.getIdToken(true); }catch(e){}
       try{
-        const snap=await getDocs(collection(db,'artesaos'));
-        const doc=snap.docs.find(d=>d.data().email===user.email);
-        if(!doc){
+        const {doc:fdoc,getDoc}=window._fb;
+        // Busca DIRETO pelo ID do documento (== UID do Firebase Auth), sem ler a coleção inteira
+        const snap=await getDoc(fdoc(db,'artesaos',user.uid));
+        if(!snap.exists()){
           toast('Cadastro não encontrado. Aguarde aprovação do administrador.','warn');
           const {signOut}=window._fb;
           await signOut(auth);
           return;
         }
-        const a=doc.data();
+        const a=snap.data();
         if(a.status==='inativo'){
           toast('Sua conta está inativa. Contate o administrador.','err');
           const {signOut}=window._fb;
@@ -690,6 +714,7 @@ function initAuthObserver(){
           return;
         }
         sessao={tipo:'artesao',id:a.id,nome:a.nome};
+        artesaos=[a]; // só o próprio registro fica disponível localmente
         await loadAll();
         entrarApp();
       }catch(e){
@@ -715,7 +740,10 @@ async function decidirCadastro(solId,decisao){
   const sol=solicitacoes.find(x=>x.id===solId);if(!sol)return;
   sol.status=decisao;
   if(decisao==='aprovado'){
-    const novoId=uid();
+    // O ID do artesão passa a ser o mesmo UID do Firebase Auth (permite regras de segurança
+    // por dono do documento). Se por algum motivo não houver authUid salvo, cai para um ID
+    // aleatório (o artesão precisaria recadastrar a conta nesse caso raro).
+    const novoId=sol.authUid||uid();
     const novoArtesao={id:novoId,status:'ativo',nome:sol.nome,marca:sol.marca,
       telefone:sol.telefone,email:sol.email,cidade:sol.cidade,
       instagram:sol.instagram||'',facebook:sol.facebook||'',site:sol.site||'',
