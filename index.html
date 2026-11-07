@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Feiras de Artesanato — Gestão de Inscrições</title>
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <script type="module">
 // ── FIREBASE SDK ────────────────────────────────────────────────────────────
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
@@ -196,7 +197,7 @@ tr:hover td{background:#faf6f1;}
       <div class="form-group" style="margin-bottom:8px;"><label>Senha</label><input type="password" id="admin-senha" placeholder="Digite a senha" onkeydown="if(event.key==='Enter')loginAdmin()"></div>
       <div id="erro-admin" style="display:none;" class="msg-erro">🔒 <span id="erro-admin-txt">Email ou senha incorretos.</span></div>
       <button class="btn btn-primary btn-full" style="margin-top:10px;" onclick="loginAdmin()">Entrar</button>
-      <p style="font-size:11px;color:var(--muted);text-align:center;margin-top:10px;cursor:pointer;" onclick="recuperarSenha()">Esqueci minha senha</p>
+      <p style="font-size:11px;color:var(--muted);text-align:center;margin-top:10px;cursor:pointer;" onclick="abrirRecuperarSenha()">Esqueci minha senha</p>
     </div>
     <div id="login-artesao-form" style="display:none;">
       <div class="sub-tabs">
@@ -208,7 +209,7 @@ tr:hover td{background:#faf6f1;}
         <div class="form-group" style="margin-bottom:8px;"><label>Senha</label><input type="password" id="artesao-senha-login" placeholder="Sua senha" onkeydown="if(event.key==='Enter')loginArtesao()"></div>
         <div id="erro-artesao" style="display:none;" class="msg-erro">⚠️ <span id="erro-artesao-txt">Email ou senha incorretos.</span></div>
         <button class="btn btn-primary btn-full" style="margin-top:10px;" onclick="loginArtesao()">Entrar</button>
-        <p style="font-size:11px;color:var(--muted);text-align:center;margin-top:8px;cursor:pointer;" onclick="recuperarSenha()">Esqueci minha senha</p>
+        <p style="font-size:11px;color:var(--muted);text-align:center;margin-top:8px;cursor:pointer;" onclick="abrirRecuperarSenha()">Esqueci minha senha</p>
       </div>
       <div id="artesao-cadastrar" style="display:none;">
         <div class="step-indicator" id="step-indicator"></div>
@@ -239,6 +240,10 @@ tr:hover td{background:#faf6f1;}
         <div id="step-3" style="display:none;">
           <p style="font-size:12px;color:var(--muted);margin-bottom:10px;">Selecione todos os grupos em que seus produtos se encaixam.</p>
           <div class="grupos-list" id="c-grupos-list"></div>
+          <label style="display:flex;align-items:flex-start;gap:8px;margin-top:16px;padding:10px 12px;background:var(--areia);border-radius:var(--radius);cursor:pointer;">
+            <input type="checkbox" id="c-lgpd" style="margin-top:2px;">
+            <span style="font-size:11.5px;color:var(--muted);line-height:1.4;">Li e concordo com a <a href="#" onclick="event.preventDefault();abrirPoliticaPrivacidade();" style="color:var(--terra);">Política de Privacidade</a>, e autorizo o uso dos meus dados para fins de organização das feiras de artesanato. *</span>
+          </label>
           <div class="flex-end" style="margin-top:14px;"><button class="btn btn-secondary btn-sm" onclick="stepBack(3)">← Voltar</button><button class="btn btn-primary btn-sm" onclick="enviarCadastro()">✓ Enviar</button></div>
         </div>
         <div id="step-ok" style="display:none;text-align:center;padding:10px 0;">
@@ -256,7 +261,7 @@ tr:hover td{background:#faf6f1;}
 <div id="app-screen" style="display:none;">
   <div class="header">
     <div><h1>🧵 Feiras de Artesanato</h1><div class="header-sub" id="header-sub-txt"></div></div>
-    <div class="header-user"><span id="sino-notif" onclick="toggleNotifPanel()" style="position:relative;cursor:pointer;font-size:18px;margin-right:6px;display:none;">🔔<span id="sino-badge" style="display:none;position:absolute;top:-6px;right:-7px;background:#c0392b;color:white;font-size:10px;font-weight:700;border-radius:50%;min-width:16px;height:16px;display:flex;align-items:center;justify-content:center;padding:0 3px;"></span></span>Olá, <span id="header-user-name">—</span><button class="btn-sair" onclick="logout()">Sair</button></div>
+    <div class="header-user"><span id="config-email-icon" onclick="abrirConfigEmail()" style="cursor:pointer;font-size:17px;margin-right:8px;display:none;" title="Configurações de e-mail">⚙️</span><span id="sino-notif" onclick="toggleNotifPanel()" style="position:relative;cursor:pointer;font-size:18px;margin-right:6px;display:none;">🔔<span id="sino-badge" style="display:none;position:absolute;top:-6px;right:-7px;background:#c0392b;color:white;font-size:10px;font-weight:700;border-radius:50%;min-width:16px;height:16px;display:flex;align-items:center;justify-content:center;padding:0 3px;"></span></span>Olá, <span id="header-user-name">—</span><button class="btn-sair" onclick="logout()">Sair</button></div>
   </div>
   <div id="painel-notif" style="display:none;position:fixed;top:54px;right:14px;width:320px;max-height:420px;overflow-y:auto;background:white;border:1px solid var(--borda-forte);border-radius:var(--radius);box-shadow:0 8px 24px rgba(0,0,0,0.15);z-index:200;">
     <div style="padding:11px 14px;border-bottom:1px solid var(--borda-forte);display:flex;justify-content:space-between;align-items:center;"><strong style="font-size:13px;">Notificações</strong><button class="btn btn-secondary btn-sm" style="font-size:11px;padding:3px 8px;" onclick="marcarTodasLidas()">Marcar todas lidas</button></div>
@@ -271,6 +276,7 @@ tr:hover td{background:#faf6f1;}
     </div>
     <div class="section" id="section-artesaos">
       <div class="flex-between" style="margin-bottom:13px;"><h2 style="font-size:17px;color:var(--escuro);">Artesãos</h2><button class="btn btn-primary btn-sm" onclick="abrirModalArtesao()">+ Novo artesão</button></div>
+      <div id="candidatos-exclusao-box"></div>
       <div style="display:flex;gap:9px;margin-bottom:13px;flex-wrap:wrap;">
         <input type="text" id="busca-artesao" placeholder="Buscar nome, marca ou cidade..." oninput="renderArtesaos()" style="flex:1;min-width:160px;padding:8px 11px;border:1px solid var(--borda-forte);border-radius:var(--radius);font-size:13px;outline:none;">
         <select id="filtro-grupo" onchange="renderArtesaos()" style="padding:8px 10px;border:1px solid var(--borda-forte);border-radius:var(--radius);font-size:13px;background:white;outline:none;min-width:160px;"><option value="">Todos os grupos</option></select>
@@ -469,6 +475,41 @@ tr:hover td{background:#faf6f1;}
     <div id="pesquisa-resultados-conteudo"></div>
   </div>
 </div>
+<div class="modal-backdrop" id="modal-recuperar-senha">
+  <div class="modal" style="max-width:380px;">
+    <div class="modal-title"><span>Redefinir senha</span><button class="modal-close" onclick="fecharModal('modal-recuperar-senha')">×</button></div>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:10px;">Informe o e-mail usado no cadastro. Vamos mandar um link de redefinição de senha por e-mail.</p>
+    <div class="form-group form-full"><label>E-mail</label><input type="email" id="rs-email" onkeydown="if(event.key==='Enter')enviarRecuperacaoSenha();"></div>
+    <div class="flex-end" style="margin-top:10px;"><button class="btn btn-primary btn-sm" onclick="enviarRecuperacaoSenha()">Enviar link</button></div>
+  </div>
+</div>
+<div class="modal-backdrop" id="modal-config-email">
+  <div class="modal" style="max-width:480px;">
+    <div class="modal-title"><span>Configurações de e-mail (EmailJS)</span><button class="modal-close" onclick="fecharModal('modal-config-email')">×</button></div>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:12px;">Preencha com os dados da sua conta EmailJS para que o e-mail de aprovação de cadastro seja enviado automaticamente. Enquanto isso não for preenchido, o app funciona normalmente — só não manda esse e-mail (a notificação dentro do app continua funcionando de qualquer forma).</p>
+    <div class="form-group form-full"><label>Service ID</label><input type="text" id="cfg-email-service"></div>
+    <div class="form-group form-full"><label>Template ID</label><input type="text" id="cfg-email-template"></div>
+    <div class="form-group form-full"><label>Public Key</label><input type="text" id="cfg-email-key"></div>
+    <div class="flex-between" style="margin-top:12px;">
+      <button class="btn btn-secondary btn-sm" onclick="testarEmailjsConfig()">Enviar e-mail de teste</button>
+      <button class="btn btn-primary btn-sm" onclick="salvarConfigEmail()">Salvar</button>
+    </div>
+  </div>
+</div>
+<div class="modal-backdrop" id="modal-privacidade">
+  <div class="modal" style="max-width:640px;max-height:80vh;overflow-y:auto;">
+    <div class="modal-title"><span>Política de Privacidade</span><button class="modal-close" onclick="fecharModal('modal-privacidade')">×</button></div>
+    <div style="font-size:12.5px;line-height:1.6;color:var(--texto);">
+      <p style="margin-bottom:10px;">Esta é a Política de Privacidade do sistema de gestão de feiras de artesanato. Ela explica quais dados coletamos de você (artesão), para quê, e quais são os seus direitos.</p>
+      <p style="margin-bottom:6px;"><strong>1. Quais dados coletamos</strong><br>Nome, marca, cidade, telefone, e-mail, documento (carteira de artesão, CPF ou CNPJ), redes sociais, grupo de atuação, documentos e comprovantes enviados nas inscrições, histórico de presença e pagamento.</p>
+      <p style="margin-bottom:6px;"><strong>2. Para que usamos</strong><br>Exclusivamente para organizar sua participação nas feiras: avaliar seu cadastro, controlar inscrições, cobrar e confirmar pagamentos, organizar o rodízio entre expositores e divulgar os expositores da feira.</p>
+      <p style="margin-bottom:6px;"><strong>3. Com quem compartilhamos</strong><br>Seus dados não são vendidos nem repassados a terceiros. Só o organizador da feira (administrador do sistema) tem acesso ao conjunto completo dos seus dados.</p>
+      <p style="margin-bottom:6px;"><strong>4. Por quanto tempo guardamos</strong><br>Enquanto você estiver ativo no sistema. Cadastros sem nenhuma atividade (presença ou inscrição) por mais de 1 ano são periodicamente revisados pelo organizador para possível exclusão.</p>
+      <p style="margin-bottom:6px;"><strong>5. Seus direitos</strong><br>Você pode a qualquer momento solicitar a edição dos seus dados pelo próprio portal, ou solicitar a exclusão completa da sua conta e dos seus dados, também pelo portal.</p>
+      <p style="margin-bottom:0;"><strong>6. Contato</strong><br>Dúvidas sobre seus dados podem ser encaminhadas diretamente ao organizador da feira, pelos canais de contato já usados para tratar da sua participação.</p>
+    </div>
+  </div>
+</div>
 <div class="modal-backdrop" id="modal-chat-feira">
   <div class="modal" style="max-width:560px;display:flex;flex-direction:column;height:min(640px,84vh);">
     <div class="modal-title"><span id="modal-chat-titulo">Chat da feira</span><button class="modal-close" onclick="fecharChatFeira()">×</button></div>
@@ -517,6 +558,7 @@ let artesaos=[],feiras=[],inscricoes=[],solicitacoes=[],dadosBanco={},parceiros=
 let pesquisaConfig={perguntas:[]}; // conjunto de perguntas atualmente ativo (editável pelo admin)
 let pesquisas=[]; // respostas da pesquisa de satisfação
 let _chatFeiraId=null,_chatUnsub=null,_chatMensagens=[]; // estado do chat aberto no momento
+let emailjsConfig={serviceId:'',templateId:'',publicKey:''};
 let sessao={tipo:null,id:null,nome:null};
 let _step=1,_inscUploads={};
 // Limite de tamanho de arquivo anexado (documentos/comprovantes).
@@ -544,6 +586,7 @@ async function fsGet(col){
   const {db,collection,getDocs,doc,getDoc}=window._fb;
   if(col==='dadosBanco'){const d=await getDoc(doc(db,'config','banco'));return d.exists()?d.data():{};}
   if(col==='pesquisaConfig'){const d=await getDoc(doc(db,'config','pesquisa'));return d.exists()?d.data():{perguntas:[]};}
+  if(col==='emailjsConfig'){const d=await getDoc(doc(db,'config','emailjs'));return d.exists()?d.data():{serviceId:'',templateId:'',publicKey:''};}
   const snap=await getDocs(collection(db,col));
   return snap.docs.map(d=>d.data());
 }
@@ -558,6 +601,7 @@ async function fsSave(col,val){
   const {db,collection,setDoc,doc}=window._fb;
   if(col==='dadosBanco'){await setDoc(doc(db,'config','banco'),val);return;}
   if(col==='pesquisaConfig'){await setDoc(doc(db,'config','pesquisa'),val);return;}
+  if(col==='emailjsConfig'){await setDoc(doc(db,'config','emailjs'),val);return;}
   // val é array — salva cada item como documento com id
   const arr=Array.isArray(val)?val:[val];
   await Promise.all(arr.map(item=>setDoc(doc(db,col,item.id),item)));
@@ -571,13 +615,13 @@ window.fsDelete=fsDelete;
 
 async function loadAll(){
   if(sessao.tipo==='admin'){
-    const [a,f,i,s,b,p,pp,n,pc,pq]=await Promise.all([
+    const [a,f,i,s,b,p,pp,n,pc,pq,ec]=await Promise.all([
       fsGet('artesaos'),fsGet('feiras'),fsGet('inscricoes'),fsGet('solicitacoes'),
       fsGet('dadosBanco'),fsGet('parceiros'),fsGet('participacoesParceiros'),fsGet('notificacoes'),
-      fsGet('pesquisaConfig'),fsGet('pesquisas')
+      fsGet('pesquisaConfig'),fsGet('pesquisas'),fsGet('emailjsConfig')
     ]);
     artesaos=a;feiras=f;inscricoes=i;solicitacoes=s;dadosBanco=b;parceiros=p;participacoesParceiros=pp;notificacoes=n;
-    pesquisaConfig=pc;pesquisas=pq;
+    pesquisaConfig=pc;pesquisas=pq;emailjsConfig=ec;
   } else if(sessao.tipo==='artesao'){
     // Artesão só carrega feiras (públicas) + dados PIX (públicos p/ logados) + os PRÓPRIOS
     // registros de inscrições/notificações/solicitações — nunca os dados de outros artesãos.
@@ -672,6 +716,7 @@ async function enviarCadastro(){
   if(!email){toast('Informe um email para login','err');return;}
   if(senha.length<6){toast('A senha precisa ter ao menos 6 caracteres','err');return;}
   if(senha!==senha2){toast('As senhas não coincidem','err');return;}
+  if(!document.getElementById('c-lgpd').checked){toast('É preciso aceitar a Política de Privacidade para se cadastrar','err');return;}
   const {auth,createUserWithEmailAndPassword}=window._fb;
   try{
     const cred=await createUserWithEmailAndPassword(auth,email,senha);
@@ -688,7 +733,7 @@ async function enviarCadastro(){
       docCarteira:document.getElementById('c-doc-carteira').value.trim(),
       docCpf:document.getElementById('c-doc-cpf').value.trim(),
       docCnpj:document.getElementById('c-doc-cnpj').value.trim(),
-      grupos,outrosDesc,enviadoEm:new Date().toISOString()
+      grupos,outrosDesc,consentimentoLgpd:true,consentimentoLgpdData:new Date().toISOString(),enviadoEm:new Date().toISOString()
     });
     await save('solicitacoes',solicitacoes);
     // Desloga o novo usuário (ainda não aprovado)
@@ -731,15 +776,20 @@ async function loginArtesao(){
     mostrarErro('erro-artesao','Email ou senha incorretos.');
   }
 }
-async function recuperarSenha(){
+function abrirRecuperarSenha(){
+  document.getElementById('rs-email').value='';
+  abrirModal('modal-recuperar-senha');
+}
+async function enviarRecuperacaoSenha(){
   const {auth,sendPasswordResetEmail}=window._fb;
-  const email=prompt('Digite seu email para redefinir a senha:');
-  if(!email)return;
+  const email=document.getElementById('rs-email').value.trim();
+  if(!email){toast('Informe seu e-mail.','err');return;}
   try{
     await sendPasswordResetEmail(auth,email);
-    toast('Email de redefinição enviado!','ok');
+    toast('E-mail de redefinição enviado! Confira sua caixa de entrada.','ok');
+    fecharModal('modal-recuperar-senha');
   }catch(e){
-    toast('Email não encontrado.','err');
+    toast('Não encontramos esse e-mail cadastrado.','err');
   }
 }
 function entrarApp(){
@@ -748,6 +798,7 @@ function entrarApp(){
   document.getElementById('header-user-name').textContent=sessao.nome;
   document.getElementById('header-sub-txt').textContent=sessao.tipo==='admin'?'Painel administrativo':'Portal do artesão';
   document.getElementById('sino-notif').style.display=sessao.tipo==='artesao'?'inline-block':'none';
+  document.getElementById('config-email-icon').style.display=sessao.tipo==='admin'?'inline-block':'none';
   buildNav();renderAll();showTab(sessao.tipo==='admin'?'painel':'portal');
   if(sessao.tipo==='artesao')renderSinoNotif();
 }
@@ -813,10 +864,11 @@ function showTab(tab){document.querySelectorAll('.section').forEach(s=>s.classLi
 function renderAll(){if(sessao.tipo==='admin'){renderStats();renderCadPendentes();renderPendencias();renderArtesaos();renderFeiras();renderInscricoes();populateSelects();renderParceiros();}else{renderPortal();renderSinoNotif();}}
 async function liberarRodizioEBanner(){const n=verificarLiberacaoRodizio();if(n>0){await save('inscricoes',inscricoes);const b=document.getElementById('rod-libera-banner');b.innerHTML=`<div style="background:var(--verde-pale);border:1px solid #c0dd97;border-radius:var(--radius);padding:10px 14px;font-size:12px;color:var(--verde);margin-bottom:14px;">✅ <strong>${n} artesão(s)</strong> do rodízio liberados automaticamente.</div>`;setTimeout(()=>{b.innerHTML='';},6000);}}
 function renderStats(){const cadP=solicitacoes.filter(s=>s.status==='pendente').length;const docP=inscricoes.filter(i=>{const f=feiras.find(x=>x.id===i.feiraId),a=artesaos.find(x=>x.id===i.artesaoId);if(!f||!a)return false;return regraDoc(f,tipoDocPrincipal(a)).some(d=>d.obrigatorio&&i.documentos?.[d.tipo]?.status==='pendente');}).length;const presP=inscricoes.filter(i=>i.status==='confirmado'&&i.presenca===null).length;document.getElementById('stats-grid').innerHTML=`<div class="stat"><div class="stat-label">Artesãos ativos</div><div class="stat-val">${artesaos.filter(a=>a.status==='ativo').length}</div></div><div class="stat"><div class="stat-label">Feiras</div><div class="stat-val">${feiras.length}</div></div><div class="stat"><div class="stat-label">Inscrições ativas</div><div class="stat-val">${inscricoes.filter(i=>i.status==='confirmado').length}</div></div><div class="stat"><div class="stat-label" style="${docP?'color:#854F0B;font-weight:600':''}">Docs pendentes</div><div class="stat-val" style="${docP?'color:#854F0B':''}">${docP}</div></div><div class="stat"><div class="stat-label" style="${presP?'color:#854F0B;font-weight:600':''}">Presenças p/ marcar</div><div class="stat-val" style="${presP?'color:#854F0B':''}">${presP}</div></div>`;}
-function renderCadPendentes(){const pend=solicitacoes.filter(s=>s.status==='pendente');document.getElementById('badge-cad-pend').innerHTML=pend.length?`<span class="pend-badge">${pend.length}</span>`:'';const pendEdicoes=pend.filter(s=>s.tipo==='edicao');const pendCads=pend.filter(s=>s.tipo!=='edicao');const el=document.getElementById('cad-pendentes-lista');
+function renderCadPendentes(){const pend=solicitacoes.filter(s=>s.status==='pendente');document.getElementById('badge-cad-pend').innerHTML=pend.length?`<span class="pend-badge">${pend.length}</span>`:'';const pendEdicoes=pend.filter(s=>s.tipo==='edicao');const pendExclusoes=pend.filter(s=>s.tipo==='exclusao');const pendCads=pend.filter(s=>s.tipo!=='edicao'&&s.tipo!=='exclusao');const el=document.getElementById('cad-pendentes-lista');
   if(!pend.length){el.innerHTML='<p style="font-size:13px;color:var(--muted);padding:4px 0;">Nenhum cadastro pendente. ✓</p>';return;}
+  const exclusaoHtml=pendExclusoes.length?'<div style="font-size:11px;font-weight:600;color:#a32d2d;text-transform:uppercase;margin:8px 0 4px;">🗑️ Pedidos de exclusão de conta (LGPD)</div>'+pendExclusoes.map(s=>{const a=artesaos.find(x=>x.id===s.artesaoId);return `<div style="padding:10px 0;border-bottom:1px solid var(--borda-forte);"><div class="flex-between"><div><div style="font-weight:600;">${a?.nome||s.nome} <span style="font-size:12px;color:var(--terra);">— ${s.marca||''}</span></div><div style="font-size:12px;color:#a32d2d;">Pediu para excluir a conta e todos os dados</div></div><div style="display:flex;gap:6px;"><button class="btn btn-secondary btn-sm" onclick="decidirExclusao('${s.id}','recusado')">Recusar</button><button class="btn btn-danger btn-sm" onclick="decidirExclusao('${s.id}','aprovado')">Confirmar exclusão</button></div></div></div>`;}).join(''):'';
   const edicaoHtml=pendEdicoes.length?'<div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;margin:8px 0 4px;">Solicitações de edição</div>'+pendEdicoes.map(s=>{const a=artesaos.find(x=>x.id===s.artesaoId);return `<div style="padding:10px 0;border-bottom:1px solid var(--borda-forte);"><div class="flex-between"><div><div style="font-weight:600;">${a?.nome||s.nome} <span style="font-size:12px;color:var(--terra);">— ${s.marca}</span></div><div style="font-size:12px;color:var(--muted);">Quer alterar: nome, marca, contato e/ou grupos</div></div><div style="display:flex;gap:6px;"><button class="btn btn-danger btn-sm" onclick="decidirEdicao('${s.id}','recusado')">Recusar</button><button class="btn btn-success btn-sm" onclick="decidirEdicao('${s.id}','aprovado')">Aprovar</button></div></div></div>`;}).join(''):'';
-  const cadHtml=pendCads.map(s=>{const docs=[s.docCarteira?`<span class="badge badge-verde">Carteira</span>`:'',s.docCpf?`<span class="badge badge-gray">CPF</span>`:'',s.docCnpj?`<span class="badge badge-blue">CNPJ</span>`:''].filter(Boolean).join('');const gruposHtml=(s.grupos||[]).map(gid=>{const g=GRUPOS.find(x=>x.id===gid);return g?`<span class="badge ${g.rodizio?'badge-amber':'badge-terra'}">${g.nome}</span>`:''}).join('');return `<div style="padding:11px 0;border-bottom:1px solid var(--borda-forte);"><div class="flex-between" style="margin-bottom:6px;"><div><div style="font-weight:600;">${s.nome} <span style="font-size:12px;color:var(--terra);">— ${s.marca||''}</span></div><div style="font-size:12px;color:var(--muted);">${s.cidade||''} · ${docs}</div><div style="margin-top:4px;">${gruposHtml}</div></div><div style="display:flex;gap:6px;"><button class="btn btn-danger btn-sm" onclick="decidirCadastro('${s.id}','recusado')">Recusar</button><button class="btn btn-success btn-sm" onclick="decidirCadastro('${s.id}','aprovado')">Aprovar</button></div></div></div>`;}).join('');el.innerHTML=(pendCads.length?'<div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;margin-bottom:4px;">Novos cadastros</div>'+cadHtml:'')+edicaoHtml;}
+  const cadHtml=pendCads.map(s=>{const docs=[s.docCarteira?`<span class="badge badge-verde">Carteira</span>`:'',s.docCpf?`<span class="badge badge-gray">CPF</span>`:'',s.docCnpj?`<span class="badge badge-blue">CNPJ</span>`:''].filter(Boolean).join('');const gruposHtml=(s.grupos||[]).map(gid=>{const g=GRUPOS.find(x=>x.id===gid);return g?`<span class="badge ${g.rodizio?'badge-amber':'badge-terra'}">${g.nome}</span>`:''}).join('');return `<div style="padding:11px 0;border-bottom:1px solid var(--borda-forte);"><div class="flex-between" style="margin-bottom:6px;"><div><div style="font-weight:600;">${s.nome} <span style="font-size:12px;color:var(--terra);">— ${s.marca||''}</span></div><div style="font-size:12px;color:var(--muted);">${s.cidade||''} · ${docs}</div><div style="margin-top:4px;">${gruposHtml}</div></div><div style="display:flex;gap:6px;"><button class="btn btn-danger btn-sm" onclick="decidirCadastro('${s.id}','recusado')">Recusar</button><button class="btn btn-success btn-sm" onclick="decidirCadastro('${s.id}','aprovado')">Aprovar</button></div></div></div>`;}).join('');el.innerHTML=(pendCads.length?'<div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;margin-bottom:4px;">Novos cadastros</div>'+cadHtml:'')+edicaoHtml+exclusaoHtml;}
 async function decidirCadastro(solId,decisao){
   const sol=solicitacoes.find(x=>x.id===solId);if(!sol)return;
   sol.status=decisao;
@@ -829,10 +881,13 @@ async function decidirCadastro(solId,decisao){
       telefone:sol.telefone,email:sol.email,cidade:sol.cidade,
       instagram:sol.instagram||'',facebook:sol.facebook||'',site:sol.site||'',
       docCarteira:sol.docCarteira,docCpf:sol.docCpf,docCnpj:sol.docCnpj,
-      grupos:sol.grupos,outrosDesc:sol.outrosDesc||'',obs:'',criadoEm:new Date().toISOString()};
+      grupos:sol.grupos,outrosDesc:sol.outrosDesc||'',obs:'',
+      consentimentoLgpd:sol.consentimentoLgpd||false,consentimentoLgpdData:sol.consentimentoLgpdData||'',
+      criadoEm:new Date().toISOString()};
     artesaos.push(novoArtesao);
     await save('artesaos',artesaos);
     notificar(novoId,'🎉 Seu cadastro foi aprovado! Você já pode se inscrever nas feiras disponíveis.','ok');
+    enviarEmailCadastroAprovado(novoArtesao); // best-effort — não trava a aprovação se o e-mail falhar
   }
   await save('solicitacoes',solicitacoes);
   await save('notificacoes',notificacoes);
@@ -898,6 +953,20 @@ async function enviarEdicaoPortal(){
   toast('Solicitação enviada! Aguarde aprovação do admin.','ok');
 }
 
+// LGPD — direito ao esquecimento: o artesão pede a exclusão da própria conta e dos próprios
+// dados. Fica pendente de aprovação do admin (mesma fila das edições), para evitar exclusões
+// por clique acidental.
+async function solicitarExclusaoConta(){
+  const a=artesaos.find(x=>x.id===sessao.id);if(!a)return;
+  if(solicitacoes.find(s=>s.tipo==='exclusao'&&s.artesaoId===a.id&&s.status==='pendente')){
+    toast('Você já tem uma solicitação de exclusão aguardando aprovação.','warn');return;
+  }
+  if(!confirm('Tem certeza que quer solicitar a exclusão da sua conta e de todos os seus dados? Essa ação não pode ser desfeita depois de aprovada pelo organizador.'))return;
+  solicitacoes.push({id:uid(),tipo:'exclusao',status:'pendente',artesaoId:a.id,nome:a.nome,marca:a.marca,enviadoEm:new Date().toISOString()});
+  await save('solicitacoes',solicitacoes);
+  toast('Solicitação de exclusão enviada. O organizador vai revisar.','ok');
+}
+
 async function decidirEdicao(solId,decisao){
   const sol=solicitacoes.find(x=>x.id===solId);if(!sol)return;
   sol.status=decisao;
@@ -919,9 +988,98 @@ async function decidirEdicao(solId,decisao){
 }
 // ── FIM EDIÇÃO PORTAL ───────────────────────────────────────────────────────
 
+// LGPD — aprova ou recusa o pedido de exclusão de conta. Ao aprovar, apaga o cadastro do
+// artesão e tudo que está ligado a ele (inscrições, notificações, vínculos de chat, respostas
+// de pesquisa). O login no Firebase Authentication continua existindo — isso só pode ser
+// removido manualmente no Firebase Console (Authentication → Users), pois o navegador do
+// admin não tem permissão para apagar a conta de outra pessoa.
+async function decidirExclusao(solId,decisao){
+  const sol=solicitacoes.find(x=>x.id===solId);if(!sol)return;
+  sol.status=decisao;
+  if(decisao==='aprovado'){
+    const artesaoId=sol.artesaoId;
+    const artesaoObj=artesaos.find(x=>x.id===artesaoId);
+    const emailArtesao=artesaoObj?.email||'(email não encontrado)';
+    const minhasInsc=inscricoes.filter(i=>i.artesaoId===artesaoId);
+    const minhasNotif=notificacoes.filter(n=>n.artesaoId===artesaoId);
+    const minhasPesq=pesquisas.filter(p=>p.artesaoId===artesaoId);
+    const feirasEnvolvidas=[...new Set(minhasInsc.map(i=>i.feiraId))];
+    await Promise.all([
+      ...minhasInsc.map(i=>fsDelete('inscricoes',i.id)),
+      ...minhasNotif.map(n=>fsDelete('notificacoes',n.id)),
+      ...minhasPesq.map(p=>fsDelete('pesquisas',p.id)),
+      ...feirasEnvolvidas.map(fid=>removerMembroFeira(fid,artesaoId)),
+      fsDelete('artesaos',artesaoId)
+    ]);
+    artesaos=artesaos.filter(a=>a.id!==artesaoId);
+    inscricoes=inscricoes.filter(i=>i.artesaoId!==artesaoId);
+    notificacoes=notificacoes.filter(n=>n.artesaoId!==artesaoId);
+    pesquisas=pesquisas.filter(p=>p.artesaoId!==artesaoId);
+    await save('solicitacoes',solicitacoes);
+    renderCadPendentes();renderArtesaos();renderStats();
+    alert('✅ Dados de '+(artesaoObj?.nome||sol.nome||'artesão')+' excluídos do sistema.\n\n⚠️ FALTA UM PASSO MANUAL:\nO login dele ainda existe no Firebase Authentication e só pode ser removido por lá.\n\n1. Abra o Firebase Console → Authentication → Users\n2. Procure por: '+emailArtesao+'\n3. Exclua esse usuário\n\nSem esse passo, a pessoa continua conseguindo abrir a tela de login (mas sem acesso a nenhum dado, já que o cadastro foi apagado).');
+    return;
+  } else {
+    notificar(sol.artesaoId,'Sua solicitação de exclusão de conta foi recusada. Fale com o organizador se tiver dúvidas.','warn');
+    await save('notificacoes',notificacoes);
+  }
+  await save('solicitacoes',solicitacoes);
+  renderCadPendentes();renderArtesaos();renderStats();
+  toast('Pedido de exclusão recusado.','warn');
+}
+
 async function toggleStatusArtesao(id){const a=artesaos.find(x=>x.id===id);if(!a)return;a.status=a.status==='inativo'?'ativo':'inativo';await save('artesaos',artesaos);renderArtesaos();toast(a.status==='ativo'?'Artesão reativado.':'Artesão marcado como inativo.','ok');}
-async function excluirArtesao(id){if(!confirm('Excluir este artesão?'))return;await fsDelete('artesaos',id);artesaos=artesaos.filter(a=>a.id!==id);await save('artesaos',artesaos);renderAll();}
-function renderArtesaos(){const sel=document.getElementById('filtro-grupo');if(sel&&sel.options.length<=1)GRUPOS.forEach(g=>{const o=document.createElement('option');o.value=g.id;o.textContent=g.id+'. '+g.nome;sel.appendChild(o);});const busca=(document.getElementById('busca-artesao')?.value||'').toLowerCase(),fg=parseInt(document.getElementById('filtro-grupo')?.value)||0;let lista=[...artesaos];if(busca)lista=lista.filter(a=>a.nome.toLowerCase().includes(busca)||(a.marca||'').toLowerCase().includes(busca)||(a.cidade||'').toLowerCase().includes(busca));if(fg)lista=lista.filter(a=>(a.grupos||[]).includes(fg));const tbody=document.getElementById('artesaos-tbody');if(!lista.length){tbody.innerHTML=`<tr><td colspan="6"><div class="empty"><div class="empty-icon">👩‍🎨</div><p>${artesaos.length?'Nenhum resultado.':'Nenhum artesão.'}</p></div></td></tr>`;return;}tbody.innerHTML=lista.map(a=>{const dl=[a.docCarteira?`<span class="badge badge-verde" title="${a.docCarteira}">Carteira</span>`:'',a.docCpf?`<span class="badge badge-gray" title="${a.docCpf}">CPF</span>`:'',a.docCnpj?`<span class="badge badge-blue" title="${a.docCnpj}">CNPJ</span>`:''].filter(Boolean).join('');const gs=(a.grupos||[]).map(gid=>{const g=GRUPOS.find(x=>x.id===gid);if(!g)return'';return`<span class="badge ${g.rodizio?'badge-amber':'badge-terra'}">${g.nome}</span>`;}).join('')+((a.grupos||[]).includes(15)&&a.outrosDesc?`<div style="font-size:10.5px;color:var(--muted);margin-top:3px;">📝 ${a.outrosDesc}</div>`:'');return `<tr><td><div style="font-weight:500;">${a.nome}</div><div style="font-size:11px;color:var(--muted);">${a.marca||''}</div></td><td>${dl||'—'}</td><td style="font-size:12px;">${a.cidade||'—'}</td><td>${gs||'—'}</td><td><button onclick="toggleStatusArtesao('${a.id}')" class="badge ${a.status==='inativo'?'badge-gray':'badge-verde'}" style="border:none;cursor:pointer;font-size:11px;">${a.status==='inativo'?'Inativo':'Ativo'}</button></td><td><button class="btn btn-secondary btn-sm" onclick="abrirModalArtesao('${a.id}')">Editar</button> <button class="btn btn-secondary btn-sm" onclick="abrirHistoricoArtesao('${a.id}')">Histórico</button> <button class="btn btn-danger btn-sm" onclick="excluirArtesao('${a.id}')">Excluir</button></td></tr>`;}).join('');}
+async function excluirArtesao(id){
+  if(!confirm('Excluir este artesão e todos os dados ligados a ele (inscrições, notificações, respostas de pesquisa)?'))return;
+  const artesaoObj=artesaos.find(x=>x.id===id);
+  const emailArtesao=artesaoObj?.email||'(email não encontrado)';
+  const nomeArtesao=artesaoObj?.nome||'artesão';
+  const minhasInsc=inscricoes.filter(i=>i.artesaoId===id);
+  const minhasNotif=notificacoes.filter(n=>n.artesaoId===id);
+  const minhasPesq=pesquisas.filter(p=>p.artesaoId===id);
+  const feirasEnvolvidas=[...new Set(minhasInsc.map(i=>i.feiraId))];
+  await Promise.all([
+    ...minhasInsc.map(i=>fsDelete('inscricoes',i.id)),
+    ...minhasNotif.map(n=>fsDelete('notificacoes',n.id)),
+    ...minhasPesq.map(p=>fsDelete('pesquisas',p.id)),
+    ...feirasEnvolvidas.map(fid=>removerMembroFeira(fid,id)),
+    fsDelete('artesaos',id)
+  ]);
+  artesaos=artesaos.filter(a=>a.id!==id);
+  inscricoes=inscricoes.filter(i=>i.artesaoId!==id);
+  notificacoes=notificacoes.filter(n=>n.artesaoId!==id);
+  pesquisas=pesquisas.filter(p=>p.artesaoId!==id);
+  renderAll();
+  alert('✅ Dados de '+nomeArtesao+' excluídos do sistema.\n\n⚠️ FALTA UM PASSO MANUAL:\nO login dele ainda existe no Firebase Authentication e só pode ser removido por lá.\n\n1. Abra o Firebase Console → Authentication → Users\n2. Procure por: '+emailArtesao+'\n3. Exclua esse usuário');
+}
+// LGPD — retenção: sinaliza (não apaga sozinho) artesãos sem nenhuma atividade há mais de 1 ano,
+// para o admin revisar manualmente e decidir se exclui.
+function calcUltimaAtividade(a){
+  const datas=[a.criadoEm].filter(Boolean);
+  inscricoes.filter(i=>i.artesaoId===a.id).forEach(i=>{if(i.criadoEm)datas.push(i.criadoEm);});
+  if(!datas.length)return null;
+  return datas.sort().slice(-1)[0];
+}
+function renderCandidatosExclusao(){
+  const box=document.getElementById('candidatos-exclusao-box');if(!box)return;
+  const hoje=new Date();
+  const candidatos=artesaos.filter(a=>{
+    const ult=calcUltimaAtividade(a);
+    if(!ult)return true;
+    return (hoje-new Date(ult))/(1000*60*60*24)>=365;
+  });
+  if(!candidatos.length){box.innerHTML='';return;}
+  box.innerHTML=`<div class="card" style="background:#FFF8EE;border-color:var(--terra-soft);margin-bottom:13px;">
+    <div class="flex-between" style="cursor:pointer;" onclick="const l=document.getElementById('lista-candidatos-exclusao');l.style.display=l.style.display==='none'?'block':'none';">
+      <div style="font-weight:600;font-size:13px;">⏳ ${candidatos.length} artesão(s) sem atividade há mais de 1 ano — candidatos a exclusão de dados (LGPD)</div>
+      <span style="font-size:11px;color:var(--muted);">ver lista ▾</span>
+    </div>
+    <div id="lista-candidatos-exclusao" style="display:none;margin-top:10px;">
+      ${candidatos.map(a=>{const ult=calcUltimaAtividade(a);return `<div class="flex-between" style="padding:6px 0;border-top:1px solid var(--borda-forte);"><div><strong>${a.nome}</strong> <span style="font-size:11px;color:var(--muted);">— última atividade: ${ult?formatDate(ult.slice(0,10)):'nunca'}</span></div><button class="btn btn-danger btn-sm" onclick="excluirArtesao('${a.id}')">Excluir</button></div>`;}).join('')}
+    </div>
+  </div>`;
+}
+function renderArtesaos(){renderCandidatosExclusao();const sel=document.getElementById('filtro-grupo');if(sel&&sel.options.length<=1)GRUPOS.forEach(g=>{const o=document.createElement('option');o.value=g.id;o.textContent=g.id+'. '+g.nome;sel.appendChild(o);});const busca=(document.getElementById('busca-artesao')?.value||'').toLowerCase(),fg=parseInt(document.getElementById('filtro-grupo')?.value)||0;let lista=[...artesaos];if(busca)lista=lista.filter(a=>a.nome.toLowerCase().includes(busca)||(a.marca||'').toLowerCase().includes(busca)||(a.cidade||'').toLowerCase().includes(busca));if(fg)lista=lista.filter(a=>(a.grupos||[]).includes(fg));const tbody=document.getElementById('artesaos-tbody');if(!lista.length){tbody.innerHTML=`<tr><td colspan="6"><div class="empty"><div class="empty-icon">👩‍🎨</div><p>${artesaos.length?'Nenhum resultado.':'Nenhum artesão.'}</p></div></td></tr>`;return;}tbody.innerHTML=lista.map(a=>{const dl=[a.docCarteira?`<span class="badge badge-verde" title="${a.docCarteira}">Carteira</span>`:'',a.docCpf?`<span class="badge badge-gray" title="${a.docCpf}">CPF</span>`:'',a.docCnpj?`<span class="badge badge-blue" title="${a.docCnpj}">CNPJ</span>`:''].filter(Boolean).join('');const gs=(a.grupos||[]).map(gid=>{const g=GRUPOS.find(x=>x.id===gid);if(!g)return'';return`<span class="badge ${g.rodizio?'badge-amber':'badge-terra'}">${g.nome}</span>`;}).join('')+((a.grupos||[]).includes(15)&&a.outrosDesc?`<div style="font-size:10.5px;color:var(--muted);margin-top:3px;">📝 ${a.outrosDesc}</div>`:'');return `<tr><td><div style="font-weight:500;">${a.nome}</div><div style="font-size:11px;color:var(--muted);">${a.marca||''}</div></td><td>${dl||'—'}</td><td style="font-size:12px;">${a.cidade||'—'}</td><td>${gs||'—'}</td><td><button onclick="toggleStatusArtesao('${a.id}')" class="badge ${a.status==='inativo'?'badge-gray':'badge-verde'}" style="border:none;cursor:pointer;font-size:11px;">${a.status==='inativo'?'Inativo':'Ativo'}</button></td><td><button class="btn btn-secondary btn-sm" onclick="abrirModalArtesao('${a.id}')">Editar</button> <button class="btn btn-secondary btn-sm" onclick="abrirHistoricoArtesao('${a.id}')">Histórico</button> <button class="btn btn-danger btn-sm" onclick="excluirArtesao('${a.id}')">Excluir</button></td></tr>`;}).join('');}
 function abrirModalFeira(id){const campos=['f-nome','f-data-inicio','f-data-fim','f-data-insc','f-data-insc-fim','f-local','f-taxa','f-vagas','f-vagas-costura','f-vagas-velas','f-obs'];campos.forEach(c=>document.getElementById(c).value='');document.getElementById('f-tipo-espaco').value='';document.getElementById('doc-rule-preview').innerHTML='';document.getElementById('f-edit-id').value=id||'';document.getElementById('modal-feira-titulo').textContent=id?'Editar feira':'Nova feira';if(id){const f=feiras.find(x=>x.id===id);if(f){document.getElementById('f-nome').value=f.nome||'';document.getElementById('f-data-inicio').value=f.dataInicio||'';document.getElementById('f-data-fim').value=f.dataFim||'';document.getElementById('f-data-insc').value=f.dataInscricao||'';document.getElementById('f-data-insc-fim').value=f.dataInscFim||'';document.getElementById('f-local').value=f.local||'';document.getElementById('f-taxa').value=f.taxa||'';document.getElementById('f-vagas').value=f.vagas||'';document.getElementById('f-vagas-costura').value=f.vagasCostura||'';document.getElementById('f-vagas-velas').value=f.vagasVelas||'';document.getElementById('f-obs').value=f.obs||'';document.getElementById('f-tipo-espaco').value=f.tipoEspaco||'';document.getElementById('doc-rule-preview').innerHTML=textoRegraFeira(f.tipoEspaco||'');}}abrirModal('modal-feira');}
 async function salvarFeira(){const nome=document.getElementById('f-nome').value.trim(),tipoEspaco=document.getElementById('f-tipo-espaco').value;if(!nome||!tipoEspaco){toast('Nome e tipo de espaço são obrigatórios','err');return;}const editId=document.getElementById('f-edit-id').value;const obj={id:editId||uid(),nome,tipoEspaco,dataInicio:document.getElementById('f-data-inicio').value,dataFim:document.getElementById('f-data-fim').value,dataInscricao:document.getElementById('f-data-insc').value,dataInscFim:document.getElementById('f-data-insc-fim').value,local:document.getElementById('f-local').value.trim(),taxa:parseFloat(document.getElementById('f-taxa').value)||0,vagas:parseInt(document.getElementById('f-vagas').value)||0,vagasCostura:parseInt(document.getElementById('f-vagas-costura').value)||0,vagasVelas:parseInt(document.getElementById('f-vagas-velas').value)||0,obs:document.getElementById('f-obs').value.trim(),edital:editId?(feiras.find(x=>x.id===editId)?.edital||''):'',criadoEm:editId?(feiras.find(x=>x.id===editId)?.criadoEm||new Date().toISOString()):new Date().toISOString()};if(editId){const idx=feiras.findIndex(x=>x.id===editId);feiras[idx]=obj;}else feiras.push(obj);await save('feiras',feiras);fecharModal('modal-feira');renderAll();toast(editId?'Atualizada!':'Feira criada!','ok');}
 async function excluirFeira(id){if(!confirm('Excluir esta feira e todas as inscrições?'))return;const inscIds=inscricoes.filter(i=>i.feiraId===id).map(i=>i.id);await fsDelete('feiras',id);await Promise.all(inscIds.map(iid=>fsDelete('inscricoes',iid)));feiras=feiras.filter(f=>f.id!==id);inscricoes=inscricoes.filter(i=>i.feiraId!==id);await save('feiras',feiras);await save('inscricoes',inscricoes);renderAll();}
@@ -939,7 +1097,7 @@ async function cancelarInscricao(id){if(!confirm('Cancelar?'))return;const i=ins
 function abrirAprovacao(inscId,tipoDoc){const insc=inscricoes.find(x=>x.id===inscId),a=artesaos.find(x=>x.id===insc?.artesaoId),f=feiras.find(x=>x.id===insc?.feiraId),env=insc?.documentos?.[tipoDoc];const lbl={comprovante_pagamento:'Comprovante de pagamento',alvara:'Alvará de funcionamento'}[tipoDoc]||tipoDoc;document.getElementById('modal-aprov-titulo').textContent='Revisar: '+lbl;let html=`<div style="margin-bottom:12px;"><div style="font-weight:500;">${a?.nome}</div><div style="font-size:12px;color:var(--muted);">${f?.nome}</div></div>`;if(env?.dataUrl&&env.dataUrl.startsWith('data:image'))html+=`<img src="${env.dataUrl}" style="max-width:100%;max-height:180px;border-radius:var(--radius);border:1px solid var(--borda-forte);display:block;">`;else if(env?.dataUrl)html+=`<div style="background:var(--areia);border:1px solid var(--borda-forte);border-radius:var(--radius);padding:12px;font-size:12px;text-align:center;">📄 ${env.nomeArquivo||'arquivo.pdf'}</div>`;else html+=`<div style="background:var(--areia);border:1px solid var(--borda-forte);border-radius:var(--radius);padding:12px;font-size:12px;color:var(--muted);text-align:center;">Nenhum arquivo enviado.</div>`;if(env?.obs)html+=`<div style="margin-top:8px;font-size:12px;color:var(--muted);">Obs: ${env.obs}</div>`;document.getElementById('modal-aprov-conteudo').innerHTML=html;document.getElementById('modal-aprov-btns').innerHTML=`<button class="btn btn-danger btn-sm" onclick="decidirDoc('${inscId}','${tipoDoc}','recusado')">Recusar</button><button class="btn btn-success btn-sm" onclick="decidirDoc('${inscId}','${tipoDoc}','aprovado')">Aprovar</button>`;abrirModal('modal-aprovacao');}
 async function decidirDoc(inscId,tipoDoc,decisao){const insc=inscricoes.find(x=>x.id===inscId);if(insc?.documentos?.[tipoDoc])insc.documentos[tipoDoc].status=decisao;if(decisao==='aprovado'){const f=feiras.find(x=>x.id===insc.feiraId),a=artesaos.find(x=>x.id===insc.artesaoId);if(f&&a&&regraDoc(f,tipoDocPrincipal(a)).every(d=>!d.obrigatorio||insc.documentos?.[d.tipo]?.status==='aprovado'))insc.status='confirmado';}const fNot=feiras.find(x=>x.id===insc.feiraId);const lblNot={comprovante_pagamento:'Comprovante de pagamento',alvara:'Alvará de funcionamento'}[tipoDoc]||tipoDoc;notificar(insc.artesaoId,decisao==='aprovado'?`✓ ${lblNot} aprovado para ${fNot?.nome||'sua inscrição'}.`:`✗ ${lblNot} recusado para ${fNot?.nome||'sua inscrição'}. Envie novamente.`,decisao==='aprovado'?'ok':'warn');await save('inscricoes',inscricoes);await save('notificacoes',notificacoes);fecharModal('modal-aprovacao');renderInscricoes();renderPendencias();renderStats();toast(decisao==='aprovado'?'Aprovado!':'Recusado.',decisao==='aprovado'?'ok':'warn');}
 function renderRodizio(){const el=document.getElementById('rodizio-conteudo');if(!el)return;el.innerHTML=GRUPOS.filter(g=>g.rodizio).map(g=>{const arts=artesaos.filter(a=>(a.grupos||[]).includes(g.id)&&a.status==='ativo');const fairasOrd=[...feiras].sort((a,b)=>(a.dataInicio||'')<(b.dataInicio||'')?-1:1);return `<div class="card"><div class="card-title">${g.full} <span class="badge badge-amber">rodízio</span></div><table style="width:100%;border-collapse:collapse;font-size:13px;"><thead><tr><th>Artesão</th><th>Última presença confirmada</th><th>Status na próxima feira</th></tr></thead><tbody>${!arts.length?`<tr><td colspan="3" style="color:var(--muted);padding:10px;font-size:12px;">Nenhum artesão.</td></tr>`:arts.map(a=>{const{emEspera,ultimaFeira}=statusRodizioArtesao(a.id,a.grupos||[]);const ultimaNome=ultimaFeira?`<span class="badge badge-amber">${ultimaFeira.nome.slice(0,20)}</span>`:'<span style="color:var(--muted);font-size:11px;">Nenhuma presença ainda</span>';const statusHtml=emEspera?'<span class="pill pill-amber"><span class="dot dot-amber"></span>Lista de espera</span>':'<span class="pill pill-verde"><span class="dot dot-verde"></span>Pode inscrever</span>';return `<tr><td><div style="font-weight:500;">${a.nome}</div><div style="font-size:11px;color:var(--muted);">${a.marca||''}</div></td><td>${ultimaNome}</td><td>${statusHtml}${emEspera?`<div style="font-size:10px;color:#854F0B;margin-top:3px;">Participou → espera na próxima</div>`:''}</td></tr>`;}).join('')}</tbody></table></div>`;}).join('');}
-function renderPortal(){const el=document.getElementById('portal-conteudo');if(!el)return;const a=artesaos.find(x=>x.id===sessao.id);if(!a){el.innerHTML='<div class="card"><p>Artesão não encontrado.</p></div>';return;}const hoje=new Date().toISOString().slice(0,10);const fairasVisiveis=feiras.filter(f=>{if(f.dataInscFim&&f.dataInscFim<hoje)return false;return true;});const feirasMostrar=fairasVisiveis.filter(f=>!inscricoes.find(i=>i.artesaoId===a.id&&i.feiraId===f.id&&i.status!=='cancelado'));const minhas=[...inscricoes.filter(i=>i.artesaoId===a.id&&i.status!=='cancelado')].sort((x,y)=>{const fx=feiras.find(f=>f.id===x.feiraId),fy=feiras.find(f=>f.id===y.feiraId);return (fy?.dataInicio||'')>(fx?.dataInicio||'')?1:-1;});let html=`<div class="card" style="background:var(--terra-pale);border-color:var(--terra-soft);margin-bottom:18px;"><div style="display:flex;align-items:center;gap:12px;"><div style="width:42px;height:42px;border-radius:50%;background:var(--terra);display:flex;align-items:center;justify-content:center;color:white;font-weight:600;font-size:17px;">${a.nome[0]}</div><div><div style="font-weight:500;font-size:15px;">${a.nome}</div>${a.marca?`<div style="font-size:12px;color:var(--medio);">${a.marca}</div>`:''}<div style="font-size:11px;color:var(--muted);">${a.cidade||''}</div><div style="margin-top:4px;">${a.docCarteira?`<span class="badge badge-verde">Carteira</span>`:''} ${a.docCpf?`<span class="badge badge-gray">CPF</span>`:''} ${a.docCnpj?`<span class="badge badge-blue">CNPJ</span>`:''}</div></div><div style="margin-top:8px;"><button class="btn btn-secondary btn-sm" onclick="abrirEdicaoPortal()">✏️ Editar meus dados</button></div></div></div></div>`;html+=renderPixCard(true);const _pesqPendente=pesquisaPendente(a.id);if(_pesqPendente)html+=`<div class="aviso-box" style="background:#FAEEDA;border:1px solid #FAC775;color:#633806;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;"><span>📝 Antes de se inscrever na próxima feira, responda a pesquisa de satisfação sobre <strong>${_pesqPendente.nome}</strong>.</span><button class="btn btn-primary btn-sm" onclick="abrirPesquisaArtesao()">Responder agora</button></div>`;html+=`<h3 style="font-size:15px;color:var(--escuro);margin-bottom:10px;">Feiras disponíveis</h3>`;if(!feirasMostrar.length)html+=`<div class="card"><p style="font-size:13px;color:var(--muted);">Nenhuma feira disponível.</p></div>`;else html+=feirasMostrar.map(f=>{const docs=regraDoc(f,tipoDocPrincipal(a));const aberta=inscricoesAbertas(f);const emEspera=artesaoEmEspera(a.id,f.id,a.grupos||[]);const editalHtml=f.edital?`<div style="margin-top:12px;padding-top:12px;border-top:0.5px solid var(--borda-forte);"><div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:6px;">📄 Edital</div><div class="edital-scroll">${f.edital}</div></div>`:'';let btn;if(!aberta)btn=`<div class="badge-fechada">🔒 ${f.dataInscricao&&hoje<f.dataInscricao?'Inscrições abrem em '+formatDate(f.dataInscricao):'Inscrições encerradas'}</div>`;else btn=`<button class="btn btn-primary btn-sm" onclick="abrirInscricaoArtesao('${f.id}')">Fazer inscrição</button>`;return `<div class="card"><div class="card-title">${f.nome}<span class="badge ${f.tipoEspaco==='publico'?'badge-blue':'badge-terra'}">${f.tipoEspaco==='publico'?'Área pública':'Particular'}</span></div><div style="font-size:12px;color:var(--muted);margin-bottom:8px;">📅 ${formatDate(f.dataInicio)}${f.dataFim?' – '+formatDate(f.dataFim):''} · 📍 ${f.local||'—'} · 💰 Taxa: <strong style="color:var(--texto);">R$ ${(f.taxa||0).toFixed(2)}</strong></div>${f.dataInscricao?`<div style="font-size:12px;color:var(--muted);margin-bottom:8px;">📝 Inscrições: ${formatDate(f.dataInscricao)}${f.dataInscFim?' até '+formatDate(f.dataInscFim):''}</div>`:''}<div style="margin-bottom:6px;">${docs.map(d=>`<span class="badge ${d.obrigatorio?'badge-terra':'badge-gray'}">${d.label}${!d.obrigatorio?' (opcional)':''}</span>`).join('')}</div>${emEspera?`<div class="aviso-box aviso-warn" style="margin-bottom:8px;">⏳ Você participou da feira anterior neste nicho. Sua inscrição entrará em <strong>lista de espera</strong>.</div>`:''}${editalHtml}<div style="margin-top:12px;">${btn}</div></div>`;}).join('');html+=`<h3 style="font-size:15px;color:var(--escuro);margin:18px 0 10px;">Minhas inscrições</h3>`;if(!minhas.length)html+=`<div class="card"><p style="font-size:13px;color:var(--muted);">Nenhuma inscrição ainda.</p></div>`;else html+=minhas.map(i=>{const f=feiras.find(x=>x.id===i.feiraId),g=GRUPOS.find(x=>x.id===i.grupoId);if(!f)return'';const st=statusInscricao(i,f,a),docs=regraDoc(f,tipoDocPrincipal(a));const pendentes=docs.filter(d=>d.obrigatorio&&(!i.documentos?.[d.tipo]||i.documentos[d.tipo].status==='recusado'));const pendHtml=pendentes.map(d=>`<div class="pend-item">⚠️ Pendente: <strong>${d.label}</strong>${i.documentos?.[d.tipo]?.status==='recusado'?' (recusado)':''} <button class="btn btn-secondary btn-sm" style="margin-left:auto;" onclick="abrirUploadPortal('${i.id}','${d.tipo}','${d.label}')">Enviar</button></div>`).join('');const okDocs=docs.filter(d=>i.documentos?.[d.tipo]?.status==='aprovado').map(d=>`<div class="pend-item ok">✓ ${d.label} aprovado</div>`).join('');const analise=docs.filter(d=>i.documentos?.[d.tipo]?.status==='pendente').map(d=>`<div class="pend-item analise">🕐 Em análise: ${d.label}</div>`).join('');const presHtml=i.presenca==='presente'?`<div style="margin-top:5px;font-size:12px;color:var(--verde);">✅ Presença confirmada</div>`:i.presenca==='ausente'?`<div style="margin-top:5px;font-size:12px;color:#a32d2d;">❌ Ausência registrada</div>`:'';const pagHtml=renderPagamentoPortal(i,f);const feiraInfoHtml=`<div style="font-size:12px;color:var(--muted);margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;"><span>📅 ${formatDate(f.dataInicio)}${f.dataFim?' – '+formatDate(f.dataFim):''} · 📍 ${f.local||'—'}${(f.taxa||0)>0?` · 💰 Taxa: <strong style="color:var(--texto);">R$ ${(f.taxa||0).toFixed(2)}</strong>`:''}</span>${janelaChatAberta(f)?`<button class="btn btn-secondary btn-sm" onclick="abrirChatFeira('${f.id}')">💬 Chat</button>`:''}</div>`;return `<div class="card" style="padding:11px 14px;margin-bottom:10px;"><div class="flex-between" style="margin-bottom:8px;"><div><span style="font-weight:500;">${f.nome}</span><span style="font-size:11px;color:var(--muted);margin-left:6px;">${g?g.nome:'—'}</span></div>${badgeStatus(st)}</div>${feiraInfoHtml}${okDocs}${analise}${pendHtml}${presHtml}${pagHtml}</div>`;}).join('');el.innerHTML=html;}
+function renderPortal(){const el=document.getElementById('portal-conteudo');if(!el)return;const a=artesaos.find(x=>x.id===sessao.id);if(!a){el.innerHTML='<div class="card"><p>Artesão não encontrado.</p></div>';return;}const hoje=new Date().toISOString().slice(0,10);const fairasVisiveis=feiras.filter(f=>{if(f.dataInscFim&&f.dataInscFim<hoje)return false;return true;});const feirasMostrar=fairasVisiveis.filter(f=>!inscricoes.find(i=>i.artesaoId===a.id&&i.feiraId===f.id&&i.status!=='cancelado'));const minhas=[...inscricoes.filter(i=>i.artesaoId===a.id&&i.status!=='cancelado')].sort((x,y)=>{const fx=feiras.find(f=>f.id===x.feiraId),fy=feiras.find(f=>f.id===y.feiraId);return (fy?.dataInicio||'')>(fx?.dataInicio||'')?1:-1;});let html=`<div class="card" style="background:var(--terra-pale);border-color:var(--terra-soft);margin-bottom:18px;"><div style="display:flex;align-items:center;gap:12px;"><div style="width:42px;height:42px;border-radius:50%;background:var(--terra);display:flex;align-items:center;justify-content:center;color:white;font-weight:600;font-size:17px;">${a.nome[0]}</div><div><div style="font-weight:500;font-size:15px;">${a.nome}</div>${a.marca?`<div style="font-size:12px;color:var(--medio);">${a.marca}</div>`:''}<div style="font-size:11px;color:var(--muted);">${a.cidade||''}</div><div style="margin-top:4px;">${a.docCarteira?`<span class="badge badge-verde">Carteira</span>`:''} ${a.docCpf?`<span class="badge badge-gray">CPF</span>`:''} ${a.docCnpj?`<span class="badge badge-blue">CNPJ</span>`:''}</div></div><div style="margin-top:8px;"><button class="btn btn-secondary btn-sm" onclick="abrirEdicaoPortal()">✏️ Editar meus dados</button> <button class="btn btn-danger btn-sm" onclick="solicitarExclusaoConta()">🗑️ Excluir minha conta</button></div></div></div></div>`;html+=renderPixCard(true);const _pesqPendente=pesquisaPendente(a.id);if(_pesqPendente)html+=`<div class="aviso-box" style="background:#FAEEDA;border:1px solid #FAC775;color:#633806;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;"><span>📝 Antes de se inscrever na próxima feira, responda a pesquisa de satisfação sobre <strong>${_pesqPendente.nome}</strong>.</span><button class="btn btn-primary btn-sm" onclick="abrirPesquisaArtesao()">Responder agora</button></div>`;html+=`<h3 style="font-size:15px;color:var(--escuro);margin-bottom:10px;">Feiras disponíveis</h3>`;if(!feirasMostrar.length)html+=`<div class="card"><p style="font-size:13px;color:var(--muted);">Nenhuma feira disponível.</p></div>`;else html+=feirasMostrar.map(f=>{const docs=regraDoc(f,tipoDocPrincipal(a));const aberta=inscricoesAbertas(f);const emEspera=artesaoEmEspera(a.id,f.id,a.grupos||[]);const editalHtml=f.edital?`<div style="margin-top:12px;padding-top:12px;border-top:0.5px solid var(--borda-forte);"><div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:6px;">📄 Edital</div><div class="edital-scroll">${f.edital}</div></div>`:'';let btn;if(!aberta)btn=`<div class="badge-fechada">🔒 ${f.dataInscricao&&hoje<f.dataInscricao?'Inscrições abrem em '+formatDate(f.dataInscricao):'Inscrições encerradas'}</div>`;else btn=`<button class="btn btn-primary btn-sm" onclick="abrirInscricaoArtesao('${f.id}')">Fazer inscrição</button>`;return `<div class="card"><div class="card-title">${f.nome}<span class="badge ${f.tipoEspaco==='publico'?'badge-blue':'badge-terra'}">${f.tipoEspaco==='publico'?'Área pública':'Particular'}</span></div><div style="font-size:12px;color:var(--muted);margin-bottom:8px;">📅 ${formatDate(f.dataInicio)}${f.dataFim?' – '+formatDate(f.dataFim):''} · 📍 ${f.local||'—'} · 💰 Taxa: <strong style="color:var(--texto);">R$ ${(f.taxa||0).toFixed(2)}</strong></div>${f.dataInscricao?`<div style="font-size:12px;color:var(--muted);margin-bottom:8px;">📝 Inscrições: ${formatDate(f.dataInscricao)}${f.dataInscFim?' até '+formatDate(f.dataInscFim):''}</div>`:''}<div style="margin-bottom:6px;">${docs.map(d=>`<span class="badge ${d.obrigatorio?'badge-terra':'badge-gray'}">${d.label}${!d.obrigatorio?' (opcional)':''}</span>`).join('')}</div>${emEspera?`<div class="aviso-box aviso-warn" style="margin-bottom:8px;">⏳ Você participou da feira anterior neste nicho. Sua inscrição entrará em <strong>lista de espera</strong>.</div>`:''}${editalHtml}<div style="margin-top:12px;">${btn}</div></div>`;}).join('');html+=`<h3 style="font-size:15px;color:var(--escuro);margin:18px 0 10px;">Minhas inscrições</h3>`;if(!minhas.length)html+=`<div class="card"><p style="font-size:13px;color:var(--muted);">Nenhuma inscrição ainda.</p></div>`;else html+=minhas.map(i=>{const f=feiras.find(x=>x.id===i.feiraId),g=GRUPOS.find(x=>x.id===i.grupoId);if(!f)return'';const st=statusInscricao(i,f,a),docs=regraDoc(f,tipoDocPrincipal(a));const pendentes=docs.filter(d=>d.obrigatorio&&(!i.documentos?.[d.tipo]||i.documentos[d.tipo].status==='recusado'));const pendHtml=pendentes.map(d=>`<div class="pend-item">⚠️ Pendente: <strong>${d.label}</strong>${i.documentos?.[d.tipo]?.status==='recusado'?' (recusado)':''} <button class="btn btn-secondary btn-sm" style="margin-left:auto;" onclick="abrirUploadPortal('${i.id}','${d.tipo}','${d.label}')">Enviar</button></div>`).join('');const okDocs=docs.filter(d=>i.documentos?.[d.tipo]?.status==='aprovado').map(d=>`<div class="pend-item ok">✓ ${d.label} aprovado</div>`).join('');const analise=docs.filter(d=>i.documentos?.[d.tipo]?.status==='pendente').map(d=>`<div class="pend-item analise">🕐 Em análise: ${d.label}</div>`).join('');const presHtml=i.presenca==='presente'?`<div style="margin-top:5px;font-size:12px;color:var(--verde);">✅ Presença confirmada</div>`:i.presenca==='ausente'?`<div style="margin-top:5px;font-size:12px;color:#a32d2d;">❌ Ausência registrada</div>`:'';const pagHtml=renderPagamentoPortal(i,f);const feiraInfoHtml=`<div style="font-size:12px;color:var(--muted);margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;"><span>📅 ${formatDate(f.dataInicio)}${f.dataFim?' – '+formatDate(f.dataFim):''} · 📍 ${f.local||'—'}${(f.taxa||0)>0?` · 💰 Taxa: <strong style="color:var(--texto);">R$ ${(f.taxa||0).toFixed(2)}</strong>`:''}</span>${janelaChatAberta(f)?`<button class="btn btn-secondary btn-sm" onclick="abrirChatFeira('${f.id}')">💬 Chat</button>`:''}</div>`;return `<div class="card" style="padding:11px 14px;margin-bottom:10px;"><div class="flex-between" style="margin-bottom:8px;"><div><span style="font-weight:500;">${f.nome}</span><span style="font-size:11px;color:var(--muted);margin-left:6px;">${g?g.nome:'—'}</span></div>${badgeStatus(st)}</div>${feiraInfoHtml}${okDocs}${analise}${pendHtml}${presHtml}${pagHtml}</div>`;}).join('');html+=`<div style="text-align:center;margin-top:20px;"><a href="#" onclick="event.preventDefault();abrirPoliticaPrivacidade();" style="font-size:11px;color:var(--muted);">Política de Privacidade</a></div>`;el.innerHTML=html;}
 function abrirInscricaoArtesao(feiraId){const a=artesaos.find(x=>x.id===sessao.id),f=feiras.find(x=>x.id===feiraId);if(!a||!f)return;if(pesquisaPendente(a.id)){toast('Responda a pesquisa de satisfação da última feira antes de se inscrever.','warn');abrirPesquisaArtesao();return;}if(!inscricoesAbertas(f)){toast('Inscrições não estão abertas.','err');return;}_inscUploads={};const tdp=tipoDocPrincipal(a),docs=regraDoc(f,tdp),grupos=a.grupos||[];const emEspera=artesaoEmEspera(a.id,feiraId,grupos);const gruposNomes=grupos.map(gid=>GRUPOS.find(x=>x.id===gid)?.nome).filter(Boolean).join(', ');const gruposRodNomes=grupos.filter(gid=>RODIZIO_GRUPOS.includes(gid)).map(gid=>GRUPOS.find(x=>x.id===gid)?.nome).filter(Boolean);let html=`<div><div class="aviso-box aviso-info" style="margin-bottom:12px;">📋 Seus nichos: <strong>${gruposNomes||'—'}</strong></div>`;if(emEspera)html+=`<div class="aviso-box" style="background:#FAEEDA;border:1px solid #FAC775;color:#633806;margin-bottom:12px;">⏳ <strong>Rodízio:</strong> você participou da feira anterior em nicho de rodízio. Inscrição entrará em <strong>lista de espera</strong> e será liberada após 3 dias.</div>`;else if(gruposRodNomes.length)html+=`<div class="aviso-box aviso-info" style="margin-bottom:12px;">ℹ️ Nichos de rodízio (${gruposRodNomes.join(', ')}): primeira participação — pode inscrever normalmente.</div>`;html+=`<div class="divider"></div><div style="font-size:13px;font-weight:600;color:var(--escuro);margin-bottom:8px;">📄 Documentos</div>`;if((f.taxa||0)>0)html+=renderPixCard(true);docs.forEach(d=>{html+=`<div style="margin-bottom:14px;"><div style="font-size:13px;font-weight:600;color:var(--escuro);margin-bottom:6px;">${d.obrigatorio?'🔴':'🔵'} ${d.label} <span class="badge ${d.obrigatorio?'badge-red':'badge-gray'}" style="font-size:9px;">${d.obrigatorio?'obrigatório':'opcional'}</span></div><div class="upload-inline" id="upload-area-${d.tipo}" onclick="document.getElementById('file-${d.tipo}').click()"><input type="file" id="file-${d.tipo}" accept="image/*,.pdf" style="display:none" onchange="handleInscUpload('${d.tipo}',this)"><div id="upload-lbl-${d.tipo}" style="font-size:12px;color:var(--muted);">📎 Clique para selecionar</div><img id="upload-img-${d.tipo}" style="display:none;max-width:100%;max-height:100px;border-radius:6px;margin-top:6px;"></div><input type="text" id="obs-${d.tipo}" placeholder="Observação" style="margin-top:6px;padding:6px 10px;border:1px solid var(--borda-forte);border-radius:var(--radius);font-size:12px;width:100%;outline:none;background:white;"></div>`;});html+=`<div class="flex-end"><button class="btn btn-secondary btn-sm" onclick="fecharModal('modal-insc-artesao')">Cancelar</button><button class="btn btn-primary btn-sm" onclick="confirmarInscricaoArtesao('${feiraId}')">Confirmar inscrição</button></div></div>`;document.getElementById('modal-ia-titulo').textContent='Inscrição: '+f.nome;document.getElementById('modal-ia-conteudo').innerHTML=html;abrirModal('modal-insc-artesao');}
 function handleInscUpload(tipo,input){const f=input.files[0];if(!f)return;const somaAtual=Object.keys(_inscUploads).filter(k=>k!==tipo).reduce((s,k)=>s+(_inscUploads[k]?.tamanhoBytes||0),0);if(!validarTamanhoArquivo(f,somaAtual)){input.value='';return;}document.getElementById('upload-lbl-'+tipo).textContent='✓ '+f.name+' ('+Math.round(f.size/1024)+'KB)';document.getElementById('upload-area-'+tipo).classList.add('has-file');const reader=new FileReader();reader.onload=e=>{_inscUploads[tipo]={dataUrl:e.target.result,nomeArquivo:f.name,tamanhoBytes:f.size};if(f.type.startsWith('image/')){const img=document.getElementById('upload-img-'+tipo);img.src=e.target.result;img.style.display='block';}};reader.readAsDataURL(f);}
 async function confirmarInscricaoArtesao(feiraId){const a=artesaos.find(x=>x.id===sessao.id),f=feiras.find(x=>x.id===feiraId);if(!a||!f)return;if(pesquisaPendente(a.id)){toast('Responda a pesquisa de satisfação da última feira antes de se inscrever.','warn');fecharModal('modal-insc-artesao');abrirPesquisaArtesao();return;}if(!inscricoesAbertas(f)){toast('Inscrições não estão abertas.','err');return;}if(inscricoes.find(i=>i.feiraId===feiraId&&i.artesaoId===a.id&&i.status!=='cancelado')){toast('Já inscrito.','err');return;}const grupos=a.grupos||[];const emEspera=artesaoEmEspera(a.id,feiraId,grupos);const gruposRod=grupos.filter(gid=>RODIZIO_GRUPOS.includes(gid));const grupoId=gruposRod.length>0?gruposRod[0]:(grupos[0]||0);const docs=regraDoc(f,tipoDocPrincipal(a));const documentos={};docs.forEach(d=>{const obs=(document.getElementById('obs-'+d.tipo)?.value||'').trim();if(_inscUploads[d.tipo])documentos[d.tipo]={status:'pendente',dataUrl:_inscUploads[d.tipo].dataUrl,nomeArquivo:_inscUploads[d.tipo].nomeArquivo,obs,enviadoEm:new Date().toISOString()};});inscricoes.push({id:uid(),feiraId,artesaoId:a.id,grupoId:grupoId||0,status:emEspera?'espera':'pendente',presenca:null,valor:f.taxa||0,pagamento:'',dataPagamento:'',comprovantePagamento:null,obs:'',documentos,criadoEm:new Date().toISOString()});await save('inscricoes',inscricoes);await criarMembroFeira(feiraId,a.id);fecharModal('modal-insc-artesao');renderPortal();const docsPend=docs.filter(d=>d.obrigatorio&&!documentos[d.tipo]).length;if(emEspera)toast('Inscrição em lista de espera. Liberada em 3 dias.','warn');else if(docsPend>0)toast(`Inscrição registrada! ${docsPend} doc(s) pendente(s).`,'warn');else toast('Inscrição realizada!','ok');}
@@ -1295,6 +1453,48 @@ async function enviarPesquisa(){
 // ===================== CHAT DA FEIRA =====================
 // Aberto desde o início das inscrições até o dia seguinte ao fim da feira (ver sweepChatsExpirados,
 // que apaga as mensagens depois disso — não fica histórico registrado).
+function abrirPoliticaPrivacidade(){abrirModal('modal-privacidade');}
+
+// ===================== E-MAIL (EmailJS) =====================
+function abrirConfigEmail(){
+  document.getElementById('cfg-email-service').value=emailjsConfig.serviceId||'';
+  document.getElementById('cfg-email-template').value=emailjsConfig.templateId||'';
+  document.getElementById('cfg-email-key').value=emailjsConfig.publicKey||'';
+  abrirModal('modal-config-email');
+}
+async function salvarConfigEmail(){
+  emailjsConfig={
+    serviceId:document.getElementById('cfg-email-service').value.trim(),
+    templateId:document.getElementById('cfg-email-template').value.trim(),
+    publicKey:document.getElementById('cfg-email-key').value.trim()
+  };
+  await save('emailjsConfig',emailjsConfig);
+  toast('Configurações de e-mail salvas!','ok');
+  fecharModal('modal-config-email');
+}
+function emailjsConfigCompleta(){return !!(emailjsConfig.serviceId&&emailjsConfig.templateId&&emailjsConfig.publicKey);}
+// Dispara o e-mail de aprovação de cadastro. Nunca trava o fluxo de aprovação — falha em silêncio
+// (a notificação dentro do app já avisa o artesão de qualquer forma).
+async function enviarEmailCadastroAprovado(artesao){
+  if(!emailjsConfigCompleta())return;
+  try{
+    await emailjs.send(emailjsConfig.serviceId,emailjsConfig.templateId,{
+      to_email:artesao.email,to_name:artesao.nome,marca:artesao.marca||''
+    },{publicKey:emailjsConfig.publicKey});
+  }catch(e){ /* melhor esforço — não bloqueia a aprovação do cadastro */ }
+}
+async function testarEmailjsConfig(){
+  const serviceId=document.getElementById('cfg-email-service').value.trim();
+  const templateId=document.getElementById('cfg-email-template').value.trim();
+  const publicKey=document.getElementById('cfg-email-key').value.trim();
+  if(!serviceId||!templateId||!publicKey){toast('Preencha os 3 campos antes de testar.','err');return;}
+  try{
+    await emailjs.send(serviceId,templateId,{to_email:window._fb.ADMIN_EMAIL,to_name:'Teste',marca:'Teste'},{publicKey});
+    toast('E-mail de teste enviado! Confira sua caixa de entrada.','ok');
+  }catch(e){
+    toast('Não foi possível enviar. Confira os 3 códigos.','err');
+  }
+}
 function janelaChatAberta(f){
   const hoje=new Date();
   const abre=f.dataInscricao?new Date(f.dataInscricao+'T00:00:00'):null;
